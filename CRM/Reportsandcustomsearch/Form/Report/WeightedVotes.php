@@ -24,19 +24,18 @@ class CRM_Reportsandcustomsearch_Form_Report_WeightedVotes extends CRM_Report_Fo
       'membership_fee' => 'Fee',
       'membership_fee_percentage' => '% of Total',
       'membership_fee_status' => 'Payment Status',
+      'theoretical_number_of_votes' => 'Theoretical Number of Votes',
       'voting_rights' => 'Voting rights?',
-      'number_of_votes' => 'Number of Votes',
+      'number_of_votes' => 'Actual Number of Votes',
     ];
 
-    $i = 1;
     foreach ($colTitles as $k => $colTitle) {
       $cols[$k] = [
         'title' => $colTitle,
-        'required' => TRUE,
+        'default' => TRUE,
+        'required' => FALSE,
         'dbAlias' => '1',
       ];
-
-      $i++;
     }
 
     return $cols;
@@ -104,6 +103,7 @@ class CRM_Reportsandcustomsearch_Form_Report_WeightedVotes extends CRM_Report_Fo
       $row['civicrm_dummy_entity_membership_fee'] = $fee;
       $row['civicrm_dummy_entity_membership_fee_percentage'] = '';
       $row['civicrm_dummy_entity_membership_fee_status'] = $status;
+      $row['civicrm_dummy_entity_theoretical_number_of_votes'] =  0;
       $row['civicrm_dummy_entity_voting_rights'] = '';
       $row['civicrm_dummy_entity_number_of_votes'] =  0;
 
@@ -123,47 +123,54 @@ class CRM_Reportsandcustomsearch_Form_Report_WeightedVotes extends CRM_Report_Fo
         $percentageFee = 0;
       }
 
+      if ($percentageFee <= 1) {
+        $theoreticalNumVotes = 1;
+      }
+      elseif ($percentageFee <= 5) {
+        $theoreticalNumVotes = 3;
+      }
+      else {
+        $theoreticalNumVotes = 5;
+      }
+
       $rows[$i]['civicrm_dummy_entity_membership_fee_percentage'] =  $percentageFee;
 
       if ($rows[$i]['civicrm_dummy_entity_membership_type'] !== 'Full Member') {
         $rows[$i]['civicrm_dummy_entity_voting_rights'] =  'No, not a full member';
+        $rows[$i]['civicrm_dummy_entity_theoretical_number_of_votes'] =  0;
         $rows[$i]['civicrm_dummy_entity_number_of_votes'] =  0;
       }
       elseif ($rows[$i]['civicrm_dummy_entity_membership_fee'] == 0) {
         $rows[$i]['civicrm_dummy_entity_voting_rights'] =  'No, no fee';
+        $rows[$i]['civicrm_dummy_entity_theoretical_number_of_votes'] =  0;
         $rows[$i]['civicrm_dummy_entity_number_of_votes'] =  0;
       }
       elseif ($rows[$i]['civicrm_dummy_entity_membership_fee_status'] !== 'Paid') {
         $rows[$i]['civicrm_dummy_entity_voting_rights'] =  'No, not paid';
+        $rows[$i]['civicrm_dummy_entity_theoretical_number_of_votes'] =  $theoreticalNumVotes;
         $rows[$i]['civicrm_dummy_entity_number_of_votes'] =  0;
       }
       else {
         $rows[$i]['civicrm_dummy_entity_voting_rights'] =  'Yes';
         $totalVotingRights++;
 
-        if ($percentageFee <= 1) {
-          $numVotes = 1;
-        }
-        elseif ($percentageFee <= 5) {
-          $numVotes = 3;
-        }
-        else {
-          $numVotes = 5;
-        }
-        $rows[$i]['civicrm_dummy_entity_number_of_votes'] =  $numVotes;
+        $rows[$i]['civicrm_dummy_entity_theoretical_number_of_votes'] =  $theoreticalNumVotes;
+        $rows[$i]['civicrm_dummy_entity_number_of_votes'] =  $theoreticalNumVotes;
       }
 
+      $totalTheoreticalNumberOfVotes += $rows[$i]['civicrm_dummy_entity_theoretical_number_of_votes'];
       $totalNumberOfVotes += $rows[$i]['civicrm_dummy_entity_number_of_votes'];
     }
 
     // totals
     $row = [
-      'civicrm_dummy_entity_display_name' => '',
+      'civicrm_dummy_entity_display_name' => 'TOTAL',
       'civicrm_dummy_entity_country' => '',
       'civicrm_dummy_entity_membership_type' => '',
       'civicrm_dummy_entity_membership_fee' => $totalFees,
       'civicrm_dummy_entity_membership_fee_percentage' => '',
       'civicrm_dummy_entity_membership_fee_status' => '',
+      'civicrm_dummy_entity_theoretical_number_of_votes' => $totalTheoreticalNumberOfVotes,
       'civicrm_dummy_entity_voting_rights' => $totalVotingRights,
       'civicrm_dummy_entity_number_of_votes' => $totalNumberOfVotes,
     ];
@@ -175,8 +182,23 @@ class CRM_Reportsandcustomsearch_Form_Report_WeightedVotes extends CRM_Report_Fo
       'civicrm_dummy_entity_country' => '',
       'civicrm_dummy_entity_membership_type' => '',
       'civicrm_dummy_entity_membership_fee' => '',
-      'civicrm_dummy_entity_membership_fee_percentage' => 'MINIMUM',
-      'civicrm_dummy_entity_membership_fee_status' => '2/3',
+      'civicrm_dummy_entity_membership_fee_percentage' => '',
+      'civicrm_dummy_entity_membership_fee_status' => 'MINIMUM FOR 1/2',
+      'civicrm_dummy_entity_theoretical_number_of_votes' => ceil($totalTheoreticalNumberOfVotes * 1 / 2),
+      'civicrm_dummy_entity_voting_rights' => ceil($totalVotingRights * 1 / 2),
+      'civicrm_dummy_entity_number_of_votes' => ceil($totalNumberOfVotes * 1 / 2),
+    ];
+    $this->makeBold($row);
+    $rows[] = $row;
+
+    $row = [
+      'civicrm_dummy_entity_display_name' => '',
+      'civicrm_dummy_entity_country' => '',
+      'civicrm_dummy_entity_membership_type' => '',
+      'civicrm_dummy_entity_membership_fee' => '',
+      'civicrm_dummy_entity_membership_fee_percentage' => '',
+      'civicrm_dummy_entity_membership_fee_status' => 'MINIMUM FOR 2/3',
+      'civicrm_dummy_entity_theoretical_number_of_votes' => ceil($totalTheoreticalNumberOfVotes * 2 / 3),
       'civicrm_dummy_entity_voting_rights' => ceil($totalVotingRights * 2 / 3),
       'civicrm_dummy_entity_number_of_votes' => ceil($totalNumberOfVotes * 2 / 3),
     ];
