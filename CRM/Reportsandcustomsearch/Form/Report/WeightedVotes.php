@@ -180,7 +180,7 @@ class CRM_Reportsandcustomsearch_Form_Report_WeightedVotes extends CRM_Report_Fo
   }
 
   private function calculateTheoreticalNumberOfVotes($percentageFee) {
-    if ($percentageFee <= 1) {
+    if ($percentageFee < 1) {
       $theoreticalNumVotes = 1;
     }
     elseif ($percentageFee <= 5) {
